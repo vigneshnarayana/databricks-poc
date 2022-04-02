@@ -1,0 +1,1487 @@
+
+
+ORACLE Advanced SQL :-
+
+in Oracle 12C
+
+There will be a main CDB (Container Database) and Multiple PDB (Pluggable Databases) on top of or inside the CDB and these PDB's are 
+removable and pluggable individually
+
+Multiple Pluggable DBs can be used for Multiple Environments or Applications and once used they can be stopped individually 
+without affecting the other PDBs
+
+ 1 CDB with Multiple PDB's
+ 
+PDBs can be created or Cloned by multiple ways 
+Eg:- PDB created from default Seed pdb template from CDB, PDB cloned from another pdb of same CDB, cloned from pdb of another CDB..
+ 
+Every PDB is an individual DB from outside Users and managed by PDB Admin.
+
+PDB Admin of one PDB cannot have any access to the another PDB, Each PDB have its owm PDB Admin
+
+But on the above The CDB will have the CDB Admin role, who can create, add or remove PDBs from the system..
+
+The advantage is Multiple PDBs can be used for multiple environments (Eg :- Same Database data with two different Schema or structure 
+  can be stored as two Seperate PDBs and used for two different applications without affecting the other)
+  
+A DB with NO PDBs is called as NON-CDB or NON-Conatiner Database similar to a standalone DB but it can be used as a Pluggin DB for
+another CDB..
+
+
+
+
+FETCH and OFFSET :-
+
+Select *
+From jobs
+OFFSET 10 rows
+Fetch next 9 rows only;
+
+
+Fetch First 5 rows ONLY;
+Fetch next 10 rows WITH TIES;
+
+
+OFFSET 5 rows
+Fetch NEXT 10 rows only;
+
+
+
+
+ADVANCED FUNCTIONS:-
+
+
+ROLL UP:-
+It will return the total sum of all group by values as a last record..
+You can ROLL UP Multiple Columns
+
+Select customer_id, Sum(amount)
+from payment
+Where customer_id Between 11 and 25
+group by ROLLUP (customer_id)
+order by customer_id;
+
+
+Select region_id, country_name, Count(country_id)
+From countries
+Group by Rollup(region_id, country_name);
+
+
+Select department_id, manager_id, hire_date, Sum(salary)
+from Employees
+where department_id in (10, 20)
+Group by Rollup(department_id, manager_id, hire_date)
+order by department_id;
+
+
+CUBE :- (2^N) combinationations in sub total..
+
+Select region_id, country_name, Count(country_id)
+From countries
+Group by CUBE(region_id, country_name);
+
+Select department_id, manager_id, hire_date, Sum(salary)
+from Employees
+where department_id in (10, 20)
+Group by CUBE(department_id, manager_id, hire_date)
+order by department_id;
+
+
+
+STDDEV :-
+
+This fuction used to obtain standard deviation in an coulumn values
+
+Select STDDEV(amount)
+from payment
+Where payment_id in (17503, 17504);
+
+Select STDDEV(amount)
+from payment;
+
+
+VARIANCE :-
+
+This fuction used to obtain Standard Variance in an coulumn values
+
+Select VARIANCE(amount)
+from payment
+where payment_id in (17503, 17504);
+
+
+COALESCE:- COALESCE can be used with more than two argumnets and till many..
+
+if commission_pct has null value then it return manager_id but if manager id also null then it will return the 3rd argument which is '3'
+
+
+Select commission_pct, manager_id, Coalesce(commission_pct, manager_id, 0)
+from employees
+where department_id = 90;
+
+
+GROUPING :-
+
+Used to Specify where the null is coming from when using ROLLUP or CUBE
+
+Value 1 = The aggregate value is an SUBTOTAL
+Value 0 = The aggregate value is the actual aggregate value based on our grouping
+
+NEED to use 'GROUPING' on all the columns which we are using in GROUP BY clause
+
+The value '1' in Grouping function states  that the NUll value is because of Rollup or CUBE 
+Similarly the Value '0' states that the value Null is actually from the Table data
+
+
+SELECT department_id, manager_id, AVG(salary),GROUPING(department_id) As a, GROUPING(manager_id) AS b ,
+CONCAT(GROUPING(department_id),GROUPING(manager_id)) AS Group_order
+FROM employees
+GROUP BY ROLLUP(department_id, manager_id)
+ORDER BY department_id;
+
+
+SELECT department_id, manager_id, AVG(salary),GROUPING(department_id) As a, GROUPING(manager_id) AS b ,
+       CONCAT(GROUPING(department_id),GROUPING(manager_id)) AS Group_order
+FROM employees
+GROUP BY CUBE(department_id, manager_id)
+HAVING CONCAT(GROUPING(department_id),GROUPING(manager_id)) != '00'
+ORDER BY department_id;
+
+
+
+
+DECODE :-
+
+IT is similar to IF or IF-ELSE Statement
+
+SELECT DECODE(1,1,'Equal');
+
+Which is Equal to :- 
+IF 1 = 1 THEN
+    RETURN 'Equal';
+END IF;
+
+
+
+SELECT DECODE(1,2, 'Equal', 'Not Equal');
+
+Which is Equal to :- 
+IF 1 = 2 THEN
+    RETURN 'Equal';
+ELSE
+    RETURN 'Not Equal';
+END IF;
+
+
+
+SELECT DECODE (2, 1, 'Equal 1', 2, 'Equal 2');
+
+Which is Equal to :- 
+IF 2 = 1 THEN
+     RETURN 'Equal 1';
+ELSE IF 2 = 2 
+    RETURN 'Equal 2';
+END IF;
+
+
+
+Select department_id, Decode(GROUPING(department_id), 1, 'Total Salary'), Sum(salary)
+From employees
+group by Rollup(department_id);
+
+
+Select department_id, Decode(GROUPING(department_id), 1, 'Total Salary', 0, NVL(to_char(department_id), 'No_dept_id'))
+       , Sum(salary)
+From employees
+group by Rollup(department_id);
+
+
+SELECT department_id, manager_id, Round(AVG(salary),2),GROUPING(department_id) As a, GROUPING(manager_id) AS b ,
+       CONCAT(GROUPING(department_id),GROUPING(manager_id)) AS Group_order,
+       Decode(GROUPING(department_id), 1, 'Total Salary', 0, NVL(to_char(department_id), 'No_dept_id')) as dept_id,
+       Decode(GROUPING(manager_id), 1, 'Total Salary', 0, NVL(to_char(manager_id), 'No_manager_id')) as mang_id
+FROM employees
+GROUP BY ROLLUP(department_id, manager_id)
+ORDER BY department_id, manager_id;
+
+
+
+GROUPING_ID :-
+
+
+Instead of Using "GROUPING" on columns individualy we can use 1 function for all columns
+
+Eg:- GROUPING_ID(department_id, manager_id)
+
+this will return '0' for aggregate value, '1' for subtotal of column1 in the grouping_id fnct(deparment_id), 
+     '2' for subtotal of column2 in the grouping_id fnct(manager_id), and '3' for Grand Total..
+	 
+The ID values depend on how many columns we are grouping
+
+
+SELECT department_id, manager_id, Round(AVG(salary),2),GROUPING_ID(department_id, manager_id)
+FROM employees
+GROUP BY CUBE(department_id, manager_id)
+ORDER BY department_id, manager_id;
+
+
+
+GROUPING SETS:-
+
+Instead of using 'ROLLUP' and 'CUBE', You can use "GROUPING SETS" to reteive the exactly what way your group by need to work on which columns you want.. 
+
+GROUP BY Grouping SETS(department_id, manager_id) :- This will group your salary only as dapartment_id alone and manager_id alone individually 
+                                                    and there will be no grand total
+													
+GROUP BY Grouping sets((department_id, manager_id), department_id)
+
+GROUP BY Grouping sets((department_id, manager_id, hire_date), department_id)
+
+GROUP BY Grouping sets((department_id, manager_id, hire_date), (manager_id,hire_date)) :- this will group by (department_id, manager_id, hire_date),
+                                                                                          and also by (manager_id,hire_date)
+																						  
+																						  
+To get Grand total use () inside GROUPING SETS at the last
+
+GROUP BY Grouping sets((department_id, manager_id, hire_date), department_id, ())  :- This will also give the Grand total at last row
+
+
+
+SELECT department_id, manager_id, Round(AVG(salary),2),GROUPING_ID(department_id, manager_id)
+FROM employees
+GROUP BY Grouping sets(department_id, manager_id)
+ORDER BY department_id, manager_id;
+
+
+SELECT department_id, manager_id, Round(AVG(salary),2),GROUPING_ID(department_id, manager_id)
+FROM employees
+GROUP BY Grouping sets((department_id, manager_id), department_id)
+ORDER BY department_id, manager_id;
+
+
+SELECT department_id, manager_id,hire_date, Sum(salary),GROUPING_ID(department_id, manager_id, hire_date)
+FROM employees
+GROUP BY Grouping sets((department_id, manager_id, hire_date), department_id)
+ORDER BY department_id, manager_id;
+
+
+SELECT department_id, manager_id,hire_date, Sum(salary),GROUPING_ID(department_id, manager_id, hire_date)
+FROM employees
+GROUP BY Grouping sets((department_id, manager_id, hire_date), department_id, ())
+ORDER BY department_id, manager_id;
+
+
+COMPOSITE COLUMN in GROUPING :-
+
+In Rollup or CUBE you can use composite column (considering 2 or multiple column as 1 by using braces)..
+
+Eg:-  GROUP BY Rollup(department_id, (manager_id, hire_date))
+
+So because of that your Sub total will only be on department_id , because rollup will consider this as 2 argument group by statement
+
+
+SELECT department_id, manager_id,hire_date, Sum(salary),GROUPING_ID(department_id, manager_id, hire_date)
+FROM employees
+GROUP BY Rollup(department_id, (manager_id, hire_date))
+ORDER BY department_id, manager_id;
+
+
+CONCATENATED GROUPING:-
+
+Using two GROUPING SETS in group by statement
+Eg :- GROUP BY GROUPING SETS (department_id), GROUPING SETS (department_id, manager_id)
+
+
+SELECT department_id, manager_id, Sum(salary),GROUPING_ID(department_id, manager_id)
+FROM employees
+GROUP BY 
+      GROUPING SETS (department_id), GROUPING SETS (department_id, manager_id)
+ORDER BY department_id, manager_id;
+
+
+Exercises :-
+
+
+Select region, country, city, sum(amount), grouping_id(region, country, city) as group_id
+from info_sales
+group by rollup(region, (country, city))
+order by region;
+
+Select region, country, city, sum(amount), grouping_id(region, country, city) as group_id
+from info_sales
+group by Grouping SETS(region , (region, country, city))
+order by region;
+
+
+RANK and DENSE_RANK :-
+
+There are two syntax for Rank 1. Analytical and 2. Aggregate 
+[for "DENSE_RANK" same syntax just replace rank with dense_rank]
+
+RANK :- GAP in rank if two value share same rank Eg:- 1,2,3,3,3,6,7,8,8,10,12,12,12,12,12,16
+DENSE_RANK :- NO Gap in rank order if two values share the same rank Eg:- 1,2,3,3,3,4,5,6,6,7,8,8,8,8,8,9
+
+[[NOTE :- The rank function will consider NULL values so you should neglect them or made them to come at last]]
+
+To remove nulls :- Order by NVL(column_name, 0) DESC (or) Order by amount DESC NULLS LAST 
+
+
+1. Analytical syntax
+
+RANK () OVER (
+        PARTITION BY column1 --(optional)--
+		ORDER BY Column DESC/ASC
+		)
+		
+		
+SElect amount, RANK () Over (Order by amount DESC) as rank_
+from info_sales;
+
+Select region, amount, RANK () Over (
+                         PARTITION BY region
+                         Order by amount DESC) as rank_
+from info_sales;
+
+
+Select region, amount, DENSE_RANK () Over (
+                         PARTITION BY region
+                         Order by amount DESC) as rank_
+from info_sales;
+
+
+Select region, amount, DENSE_RANK () Over (
+                         PARTITION BY region
+                         Order by NVL(amount, 0) DESC) as rank_
+from info_sales;
+
+
+Select region, amount,  RANK () Over (
+                         PARTITION BY region
+                         Order by amount DESC NULLS Last) as rank_
+from info_sales;
+
+
+
+When Using Rank () with joins and order by clause 
+
+Oracle Execution process :- 1. Join two table 2. provide RANK on joined table based on salary and condition(adding new column with values),
+                            3. Order the records based on ORDER BY caluse condition
+							
+ At the Final order by clause the records does not change the rank value, they just re-order the sequence but with the same rank value
+ 
+ 
+Select E.employee_id, E.salary, D.department_id, D.location_id,
+       DENSE_RANK () OVER (ORDER BY E.salary DESC nulls last) as salary_rank
+From employees E INNER JOIN departments D
+     ON E.department_id = D.department_id
+order by E.employee_id asc;
+
+
+Select E.employee_id, E.salary, D.department_id, D.location_id,
+       DENSE_RANK () OVER (
+       PARTITION BY D.location_id
+       ORDER BY E.salary DESC nulls last) as salary_rank
+From employees E INNER JOIN departments D
+     ON E.department_id = D.department_id;
+	 
+	 
+[[ You can use aggregate functions inside the rank function]]
+
+
+Select department_id, sum(salary), RANK () OVER (
+         ORDER BY SUM(salary) DESC nulls last) as Salary_rank
+From employees
+group by department_id;
+
+
+Exercise:-
+
+Select *
+From(Select department_id, employee_id, salary, RANK () OVER (
+         PARTITION BY department_id
+         ORDER BY salary DESC nulls last) as salary_rank
+     From employees)
+where salary_rank = 1;
+
+
+
+2. AGGREGATE syntax for RANK 
+
+RANK (cell_value) WITHIN GROUP (ORDER BY column_name ASC);
+
+This was used to pick rank for only one record value
+
+
+Select Dense_rank(24000) WITHIN GROUP (ORDER By salary asc)
+from employees;
+
+Select Dense_rank(10, 24000) WITHIN GROUP (ORDER By department_id, salary Asc)
+from employees;
+
+YOU can also Rank by two row_vlaues also..
+
+
+
+PERCENT_RANK :-
+
+it will Return the percentage of rank in the list
+
+The Percent_rank return the amount of percentage the rank value is better compared to others 
+ Eg:- rank 1 will be 100% because it is better than 100% of all other records 
+      Similarly Last Rank will be 0% because it was not better than any value and no one is behind that value 
+	  
+ Eg:- If there are total 11 rank rows
+      then rank 1 is better that 100% of other rows in the list 
+	  then rank 2 will be better than 90% of the items in the list (because 9 items behind it in total of remaining 10 [neglecting the comparing rank item itself])
+      then rank 3 will be better  than 80%
+      then rank 5 will be better than 60%
+      then rank 10 will better than 10 %
+      then rank 11 is better than 0%
+
+
+
+Select department_id, salary, (1 - ( PERCENT_Rank () over (
+                                             order by salary desc))) * 100 as rank_percent
+From employees
+Where department_id in (100);
+
+
+output :-
+
+department_id    salary    rank_percent
+100	             12008	    100
+100	             9000	    80
+100	             8200	    60
+100	             7800	    40
+100	             7700	    20
+100	             6900	    0
+
+
+
+You can PARTITION BY is PERCENT_RANK function also 
+
+PERCENT_RANK () OVER (
+        PARTITION BY column1 --(optional)--
+		ORDER BY Column DESC/ASC
+		)
+
+
+Select department_id, salary, (1 - ( PERCENT_Rank () over (Partition By department_id
+                                                           order by salary desc))) * 100 as rank
+From employees;
+
+
+AGGREGATE syntax:- 
+
+PERCENT_RANK (cell_value) WITHIN GROUP (ORDER BY column_name ASC);
+
+This was used to pick rank for only one record value
+
+
+
+
+CUME_DIST :- 
+(row_rank/last rank)
+
+Eg :- if the rank of record is 5 and there are total 10 ranks and then C.D = 5/10 = .5
+
+Cumulative Distribution
+
+syntax similar to RANK and DENSE_RANK
+
+
+Select employee_id, salary, Rank () over (order by salary) as rank_, 
+         CUME_DIST () OVER (
+              ORDER BY salary ) as cumm_distribution,
+ 		 PERCENT_RANK () OVER (
+            ORDER BY salary) as percent_rank
+From employees;
+
+
+
+LISTAGG :-
+
+List Aggregate function
+
+Used to show the columns records in a comma seperated list format eg :- Alex, John, Nuno, Muska, Yuvan 
+
+syntax :- LISTAGG (column_name, ',')    --[here comma is a delimiter to seperate the list values]
+          LISTAGG (city, ',') WITHIN GROUP (order by city ASC Nulls last  )    --[to list in an specific order]
+		  
+
+Select LISTAGG (city, ',')
+From Info_sales
+Where region = 'Asia';
+
+
+Select LISTAGG (city, ',') within group (order by city asc nulls last) As list_1
+From Info_sales
+Where region = 'Asia';
+
+
+Select country, LISTAGG (city, ',') within group (order by city asc nulls last) as list_1
+From Info_sales
+Where region = 'Asia' or region = 'Europe'
+group by country;
+
+
+Partition with LISTAGG :-
+
+You can use Partition fn with LISTAGG
+
+LISTAGG (city, ',') WITHIN GROUP (order by city ASC Nulls last  ) OVER (PARTITION BY column_name)
+
+
+
+Select department_id,
+       LISTAGG (first_name, ',') within group (order by first_name asc nulls last) over (partition by department_id)  as list_1
+From employees;
+
+
+
+Select Distinct( department_id), list_1
+from (Select department_id,
+        LISTAGG (first_name, ',') within group (order by first_name asc nulls last) over (partition by department_id)  as list_1
+From employees);
+
+
+
+
+NTILE :-
+
+This function allows you to break the result set into number of sets with a equal count.
+
+Eg :- if result set have 20 records and we are using NTILE with (5) then the result set will get 5 different sets with set id start from 1 to 5
+
+NTILE(5) OVER (order by employee_id)   [5 is the sets number and we can make many sets we wanted and so the result is sub didvided into 5 differebt groups]
+
+
+Select employee_id, NTILE(5) OVER (order by employee_id)
+from employees;
+
+Select trans_id, NTILE(3) OVER (Order by trans_id asc)
+from info_sales;
+
+
+
+
+
+ROWNUM and ROW_NUMBER :-
+
+ROWNUM will give a serial number to the rows in the result set, it act as seperate column with serial no..
+ 
+
+Select rownum, region, country
+from info_sales
+
+Here the first col is the rownum and it was not in the DB Table and it was created by the ROWNUM function.
+
+1	Asia	UAE
+2	Asia	UAE
+3	Asia	UAE
+4	Asia	UAE
+5	Africa	Egypt
+6	Africa	Egypt
+
+
+
+If you want Serial number in series with your order by statement then use subquery..
+
+Select rownum as S_No, region, country
+From (Select region, country
+      from info_sales
+      order By country);
+	  
+	  
+ROW_NUMBER:-
+
+
+To use rownum with PARTITION we can use row_number ..
+
+row_number () over (partition by col1 Order by col2)
+
+
+
+Select row_number () over (partition by region
+                           Order by country) as S_No, region, country
+From info_sales;
+
+
+
+
+LAG and LEAD :-
+
+LAG : it will come as an additional column with an Offset value Above the Current record 
+
+eg :- record 5 will have value of record 4 and record 4 will have for record 3.. offset of above value..
+
+syntax :-  
+
+LAG(expression , offset , default )
+OVER (
+	query_partition_clause 
+	order_by_clause
+)
+
+
+
+Select region , country, city, 
+       LAG (city) over (order by region) as lag
+From info_sales;
+ 
+Output :-
+                City          LAG
+Africa	Egypt	Cairo        (Null)
+Africa	Egypt	Cairo	     Cairo
+Asia	UAE	    Abu Dhabi	 Cairo
+Asia	UAE	    Duabi	     Abu Dhabi
+Asia	Jordan	Amman	     Duabi
+Asia	Jordan	Zarqa	     Amman
+Asia	UAE	    Abu Dhabi	 Zarqa
+Asia	UAE	    Duabi	     Abu Dhabi
+Europe	Spain	Barcelona	 Duabi
+Europe	Spain	Madrid	     Barcelona
+
+
+
+Select region , country, city, 
+       LAG (city,3) over (order by region) as lag
+From info_sales;
+
+Output :-
+                City          LAG
+Africa	Egypt	Cairo        (Null)
+Africa	Egypt	Cairo	     (Null)
+Asia	UAE	    Abu Dhabi	 (Null)
+Asia	UAE	    Duabi	     cairo
+Asia	Jordan	Amman	     cairo
+Asia	Jordan	Zarqa	     Abu Dhabi
+
+
+
+Select region , country, city, 
+       LAG (city,2, 'Nub') over (order by region) as lag
+From info_sales;
+
+Output :-
+                City         LAG
+Africa	Egypt	Cairo        Nub
+Africa	Egypt	Cairo	     Nub
+Asia	UAE	    Abu Dhabi	 Cairo
+Asia	UAE	    Duabi	     Cairo
+Asia	Jordan	Amman	     Abu Dhabi
+Asia	Jordan	Zarqa	     Duabi
+
+
+LEAD 
+
+LEAD : it will come as an additional column with an Offset value which is Below or next to the Current record 
+
+eg :- record 5 will have value of record 6 and record 6 will have for record 7.. offset one value below
+
+syntax :-  
+
+LEAD(expression , offset , default )
+OVER (
+	query_partition_clause 
+	order_by_clause
+)
+
+
+
+Select region , country, city, 
+       LEAD (city) over (order by region) as lead
+From info_sales;
+ 
+Output :-
+                City          Lead
+Africa	Egypt	Cairo        Cairo
+Africa	Egypt	Cairo	     Abu Dhabi
+Asia	UAE	    Abu Dhabi	 Duabi
+Asia	UAE	    Duabi	     Amman
+Asia	Jordan	Amman	     Zarqa
+Asia	Jordan	Zarqa	     Abu Dhabi
+Asia	UAE	    Abu Dhabi	 Duabi
+Asia	UAE	    Duabi	     Barcelona
+Europe	Spain	Barcelona	 Madrid
+Europe	Spain	Madrid	     (NULL)
+
+
+
+Select region , country, city, 
+       LEAD (city, 3, 'ESS') over (order by region) as lead
+From info_sales;
+ 
+Output :-
+                City          Lead
+Africa	Egypt	Cairo        Duabi
+Africa	Egypt	Cairo	     Amman
+Asia	UAE	    Abu Dhabi	 Zarqa
+Asia	UAE	    Duabi	     Abu Dhabi
+Asia	Jordan	Amman	     Duabi
+Asia	Jordan	Zarqa	     Barcelona
+Asia	UAE	    Abu Dhabi	 Madrid
+Asia	UAE	    Duabi	     ESS
+Europe	Spain	Barcelona	 ESS
+Europe	Spain	Madrid	     ESS
+
+some queries:-
+
+Select department_id ,avg(salary) over ( order by department_id)
+From employees;
+
+
+
+TRUNC()
+
+Select trunc(hire_date, 'year'), hire_date
+from employees;
+
+output :-
+
+01-01-2020    12-12-2020
+01-01-2021    05-07-2021
+
+
+
+
+
+NOTE [ Analytical functions does not reduce the number of records while returning to an function]
+     [ Aggregate functions return 1 value or 1 record foor the group ]
+	 
+	Analytical :- AVG (col_name) OVER (
+		          ORDER BY Column DESC/ASC
+		          )
+				  
+	 
+	 
+WINDOWING CLAUSE :-
+
+Analytical functions comes with windowing clause when required..
+
+The windowing clause gives some analytical functions a further degree of control over this window within the current partition, or
+whole result set if no partition clause is used.
+
+it has two basic forms :-  1. RANGE between start_point and end_poit
+                           2. Rows between start_point and end_point
+						   
+ Range between unbounded preceding and current row
+ Rows between unbounded preceding and current row
+ 
+Eg:- avg(salary) over ( order by department_id Range between unbounded preceding and current row)
+						   
+Range - moving_ avg between ranges 
+Rows - moving average between rows or records 						   
+						   
+						   
+Select department_id, employee_id , salary, avg(salary) over ( order by department_id asc ) as analy_avg
+From employees;
+
+
+
+Select department_id, employee_id ,
+       salary, avg(salary) over ( order by department_id Range between unbounded preceding and current row) as moving_avg
+From employees;
+
+
+Select department_id, employee_id ,
+       salary, avg(salary) over ( order by department_id Rows between unbounded preceding and current row) as moving_avg
+From employees;
+
+
+RANGE eg:-
+  
+  using order by department_id..
+  
+  depart_id       employee_id    salary     moving_salary
+     10               1           1000        1000
+	 20               3           5000        3750          
+     20               34          6000        3750
+	 20               21          3000        3750
+	 30               2           7000        4500
+     30	              12          5000        4500
+	 
+avg of 10 ..  avg of 10,20 ..  avg of 10,20,30   [Average by range]
+
+
+ROWS eg:-
+  
+  using order by department_id..
+  
+  depart_id       employee_id    salary     moving_salary
+     10               1           1000        1000
+	 20               3           5000        3000          
+     20               34          6000        4000
+	 20               21          3000        3750
+	 30               2           7000        4400
+     30	              12          5000        4500
+	 
+avg of 1st row ..  avg of 1st,2nd row ..  avg of 1st, 2nd, 3rd rows...... and so on..   [Average by rows]
+
+
+
+
+
+UNBOUNDED FOLLOWING :- in RANGE and ROWS in Windowing Clause
+
+ Range between unbounded preceding and unbounded following
+ Rows between unbounded preceding and unbounded following
+ 
+ 
+Select employee_id, department_id, salary, 
+       AVG (salary) over (order by department_id RANGE between unbounded preceding and unbounded following) as moving_avg
+From employees;
+
+
+RANGE eg:- (Unbounded following)
+  
+  using order by department_id..
+  
+  depart_id       employee_id    salary     moving_salary
+     10               1           1000        4500
+	 20               3           5000        4500          
+     20               34          6000        4500
+	 20               21          3000        4500
+	 30               2           7000        4500
+     30	              12          5000        4500
+	 
+avg of 10 to 30 by range
+
+
+ROWS eg:- (Unbounded following)
+  
+  using order by department_id..
+  
+  depart_id       employee_id    salary     moving_salary
+     10               1           1000        4500
+	 20               3           5000        4500          
+     20               34          6000        4500
+	 20               21          3000        4500
+	 30               2           7000        4500
+     30	              12          5000        4500
+	 
+avg of 10 to 30 by Rows 
+
+ [For unbounded following Rows and Range are same average]
+ 
+ 
+INSTEAD of Unbounded we can use number like 1, 2 or 5 any .. to define the number of rows it need to consider for average
+
+Eg :- 
+
+AVG (salary) over (order by department_id Rows between 2 preceding and 1 following)
+AVG (salary) over (order by department_id Rows between current row and 1 following)
+AVG (salary) over (order by department_id RANGE between 2 preceding and unbounded following)
+AVG (salary) over (order by department_id Rows between current row  and unbounded following)
+
+you can mix and match ROWS or RANGE with :-
+
+unbounded following
+1 following
+"any number" following
+current row
+unbounded preceding
+"1 or 2 or any number" preceding 
+
+
+Select employee_id, department_id, salary, 
+       AVG (salary) over (order by department_id Rows between Current row and 3 following) as moving_avg
+From employees;
+
+
+
+
+FIRST_VALUE and LAST_VALUE :-
+
+first value will display the first value alone for all records..
+
+
+Select employee_id , salary, first_value(salary) over (order by salary)
+from employees
+order by salary;
+
+OUTPUT :-
+           first_value
+132	2100	2100
+128	2200	2100
+136	2200	2100
+127	2400	2100
+135	2400	2100
+119	2500	2100
+131	2500	2100
+
+
+
+Select employee_id , salary, first_value(salary) over (order by salary rows between 1 preceding and 2 following)
+from employees
+order by salary;
+
+OUTPUT:-
+
+132	2100	2100
+128	2200	2100
+136	2200	2200
+127	2400	2200
+135	2400	2400
+119	2500	2400
+131	2500	2500
+140	2500	2500
+
+
+
+
+LAST_VALUE :-
+
+last_value will display the last value of the current list 
+
+
+Select employee_id , salary, last_value(salary) over (order by salary )
+from employees
+order by salary;
+
+OUTPUT:-
+
+132	2100	2100
+128	2200	2200
+136	2200	2200
+127	2400	2400
+135	2400	2400
+119	2500	2500
+131	2500	2500
+
+
+
+Select employee_id , salary, last_value(salary) over (order by salary rows between current row and 2 following)
+from employees
+order by salary;
+
+OUTPUT:-
+
+132	2100	2200
+128	2200	2400
+136	2200	2400
+127	2400	2500
+135	2400	2500
+119	2500	2500
+131	2500	2500
+140	2500	2500
+144	2500	2500
+182	2500	2600
+
+Try :- without using anything inside over()
+
+eg :- first_value(col_name) OVER()
+ 
+Select employee_id , salary, first_value(salary) over ()
+from employees
+order by employee_id desc;
+
+It will show the first value based on order by employee_id so the salary belong to the first employee_id will be displayed
+
+
+IGNORE and RESPECT NULL :-
+
+if the first_value and last value are null we can just ignore them by using 'Ignore nulls'
+
+Select employee_id , salary, last_value(salary) Ignore nulls over (order by salary)
+from employees
+order by salary;
+
+
+DBMS_RANDOM :- [PACKAGE]
+
+It is an Oracle Package 
+
+dbms_random function returns a random number for all the records
+USE ".random" or ".value"
+
+FOR Returning an random String 
+Use ".STRING(' ', length)
+
+Select dbms_random.random , salary
+from employees;
+
+for positive random number :- add 'abs'
+
+Select abs(dbms_random.random) , salary
+from employees;
+
+For giving a random numer between a certain range :- use '.value'
+
+Select dbms_random.value(1, 500) , salary
+from employees;
+
+For giving an rounded number as an random number :-
+
+Select Round(dbms_random.value(1, 500)) , salary
+from employees;
+
+
+For getting an random sring:-
+
+Select dbms_random.string('L',5), salary
+from employees;
+
+5 :- number of chars
+L :- Lower case string
+
+For upper case :-
+
+Select dbms_random.string('U',7), salary
+from employees;
+
+similarly :-
+
+'u', 'U' - returning string in uppercase alpha characters
+'l', 'L' - returning string in lowercase alpha characters
+'a', 'A' - returning string in mixed case alpha characters
+'x', 'X' - returning string in uppercase alpha-numeric characters
+'p', 'P' - returning string in any printable characters. 
+
+
+
+DYNAMIC SCRIPTS :-
+
+If you want to run an common DML, DDL or any Common Command on all Tables inside an Schema then instead of Manipulating 
+One by one you can use Dynamic Scripts 
+
+To Create Dynamic scripts :-
+
+Select 'Alter Table ' || table_name || ' Add created_by VARCHAR2(150);'
+From user_tables;
+
+Note :[ user_tables will bring all the available tables inside the schema]
+
+Output:-
+
+Alter Table REGIONS Add created_by VARCHAR2(150);
+Alter Table COUNTRIES Add created_by VARCHAR2(150);
+Alter Table LOCATIONS Add created_by VARCHAR2(150);
+Alter Table DEPARTMENTS Add created_by VARCHAR2(150);
+Alter Table JOBS Add created_by VARCHAR2(150);
+Alter Table EMPLOYEES Add created_by VARCHAR2(150);
+Alter Table JOB_HISTORY Add created_by VARCHAR2(150);
+Alter Table INFO_SALES Add created_by VARCHAR2(150);
+Alter Table MOVIES Add created_by VARCHAR2(150);
+
+
+
+
+HIERARCHICAL QUERIES :-
+
+These queries can be used to hierarchically categorize records with its realation if Two columns in an table are SAME but different format
+
+Eg :- Consider an Table with emp_id and manager_emp_id as columns .. IF an Employee's emp_id is used in the manager_emp_id to show to whom
+that particular employee is reporting to..
+
+Eg :-
+emp_id   Name         manager_emp_id
+100      Steven	      Null
+101    	 Neena	      100
+102	     Lex	      100
+103	     Alexander	  102
+104	     Bruce	      103
+105	     David	      103
+
+also emp_id 100 has no manager and he is the top of the hierarchy..
+Here employee with id 100 is the manager for employees 101 and 102.. and this is Hierarchical relation
+This relation will comes under TREE structure because one record relates multiple other records  
+
+100 ---- 101,  102 
+          |     |
+          |     |
+          |     |
+         112   103, 110, 117	
+		 
+To Get Tree structure use :-
+
+START WITH col1_name = start_value
+CONNECT BY PRIOR col1_name = col2_name
+
+
+
+Select employee_id, first_name, manager_id
+from employees
+START with employee_id = 100
+Connect By prior employee_id = manager_id;
+
+OUTPUT:- (tree structure)
+
+100	Steven	      NULL
+101	Neena	      100
+108	Nancy	      101
+109	Daniel	      108
+110	John	      108
+111	Ismael	      108
+112	Jose Manuel	  108
+113	Luis	      108
+200	Jennifer	  101
+203	Susan	      101
+204	Hermann	      101
+205	Shelley	      101
+206	William	      205
+102	Lex	          100
+
+
+
+We can GO BOTTOM UP :-
+
+Select employee_id, first_name, manager_id
+from employees
+START with employee_id = 110
+Connect By prior manager_id = employee_id;
+
+Output :-
+
+110	John	108
+108	Nancy	101
+101	Neena	100
+100	Steven	Null
+
+
+LEVEL :-
+
+You can use "level" hierarchical queries to get better order of tree structre..
+
+
+Select level, employee_id, first_name, manager_id
+from employees
+START with employee_id = 100
+Connect By prior  employee_id = manager_id 
+
+OUTPUT:-
+
+LEVEL
+1	   100	Steven	      NUll
+2	   101	Neena	      100
+3	   108	Nancy	      101
+4	   109	Daniel	      108
+4	   110	John	      108
+4	   111	Ismael	      108
+4	   112	Jose Manuel	  108
+4	   113	Luis	      108
+3	   200	Jennifer	  101
+3	   203	Susan	      101
+
+
+try out :-
+
+select  level,
+        case 
+        when level = 1 then first_name||' '||last_name 
+        when level > 1 then lpad (first_name||' '||last_name,length(first_name||' '||last_name)+level-1, '-')
+        end As tree_structure
+from employees  
+start with employee_id=100
+connect by prior employee_id=manager_id;
+
+
+SAME TABLE FOREIGN KEY :-
+
+When you are creating a Table you can set a column of its own Table as an foreign Key...
+
+Eg :-
+
+CREATE Table Employees (
+  emp_id SERIAL,
+  name_ VARCHAR(50) NOT NULL,
+  manager_id INT,
+  CONSTRAINT Employees_pk PRIMARY KEY (emp_id),
+  CONSTRAINT Employees_fk1 FOREIGN KEY (manager_id) REFERENCES Employees (emp_id)
+);
+
+
+DML LOGS :-
+
+Get Logs to better understand an error...
+
+
+DBMS_ERRLOG :-
+
+It is an package to get log data for issues
+
+EXEC dbms_errlog.create_error_log(table_name);
+
+desc err$_table_name;  [This command will create a new table of the actual table with some added columns for log data]
+
+
+
+EXEC dbms_errlog.create_error_log(employees);
+
+
+desc err$_employees;
+
+
+Select * 
+from err$_employees;
+
+Sample :-
+
+Insert into table21
+select employee_id , first_name||' '||last_name name
+from hr.employees
+log errors reject limit unlimited;
+
+When you executive this command then the row which do not have issues will get inserted and others with issues will not inserted
+and the count which the records was inserted will be available as Log when executive the Insert statement..
+
+
+select * from err$_table21 [this command then can be used reterive detailed details about the issues]
+
+
+
+
+PIVOT :-
+
+Create Excel like Matrix Pivot tables or Reports using 'PIVOT' function..
+
+
+select * from 
+(
+select   department_id, job_id
+from
+employees
+where job_id in  ('MK_MAN','MK_REP','PU_CLERK','PU_MAN') 
+)
+PIVOT
+(
+count(1) for job_id in  ('MK_MAN','MK_REP','PU_CLERK','PU_MAN')
+)
+order by 1;
+
+
+
+select * from 
+(
+select   department_id, job_id
+from
+employees
+)
+pivot
+(
+count(1) for job_id in  ('MK_MAN','MK_REP','PU_CLERK','PU_MAN')
+)
+ORDER BY 1;
+
+
+
+Select * from 
+(
+select   department_id, job_id, hire_date
+from
+employees
+where job_id in  ('MK_MAN','MK_REP','PU_CLERK','PU_MAN') --try to remove this line also
+)
+pivot
+(
+count(1) for job_id in  ('MK_MAN','MK_REP','PU_CLERK','PU_MAN')
+)
+ORDER BY 1;
+
+
+LEFT () = it extract character from string 
+
+
+
+
+
+Assessment :-
+
+SELECT *
+FROM(Select department_id, Salary , First_value(salary) over (Partition By department_id order by salary Desc) as max_value, 
+       first_value(salary) over (Partition By department_id order by salary Asc) as min_value
+From employees)
+WHERE salary = max_value or salary = min_value;
+
+
+
+SELECT name ,(length(name) - length(replace(name,' ',''))) + 1 As total_numberofwords
+FROM (Select concat(first_name,' ',last_name) as name
+     From actor) As sub_query
+WHERE length(name) - length(replace(name,' ','')) = 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+  
+
+
+
+
+
+	 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
+	  
+	  
+	  
+	  
+	  
+	  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
+
+
+
+
+
+
+
+
+
+
+
+							
+				
+
+
+
+
+
+
+
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
